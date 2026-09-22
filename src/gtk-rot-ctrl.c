@@ -1729,6 +1729,19 @@ GtkWidget *gtk_rot_ctrl_new(GtkSatModule *module)
     gtk_box_pack_start(GTK_BOX(rot_ctrl), table, FALSE, FALSE, 5);
     gtk_container_set_border_width(GTK_CONTAINER(rot_ctrl), 5);
 
+    /* Fix: gtk_rot_ctrl_new() must start the widget's own periodic
+       refresh timer, or the Az/El "Read" labels never update unless
+       something else (e.g. changing the Cycle spinbox) happens to
+       recreate it as a side effect. This was removed in dfb7b02
+       ("Closing the rotor control window while a rotor is engaged
+       no longer crashes Gpredict", 2023-12-24) as part of an
+       unrelated crash fix. The double-free this call could trigger
+       is already guarded against in gtk_rot_ctrl_destroy() via the
+       ctrl->timerid = 0 reset added in b74d9bd, so it's safe to
+       restore here. */
+    rot_ctrl->timerid = g_timeout_add(rot_ctrl->delay,
+                                      rot_ctrl_timeout_cb, rot_ctrl);
+
     if (module->target > 0)
         gtk_rot_ctrl_select_sat(rot_ctrl, module->target);
 
