@@ -46,7 +46,7 @@
 #define KEY_AZSTOPPOS   "AzStopPos"
 #define KEY_THLD        "Threshold"
 
-#define DEFAULT_CYCLE_MS    5000
+#define DEFAULT_CYCLE_MS    15000
 #define DEFAULT_THLD_DEG    5.0
 
 /**

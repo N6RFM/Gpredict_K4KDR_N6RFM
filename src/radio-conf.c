@@ -46,7 +46,7 @@
 #define KEY_SIG_AOS     "SIGNAL_AOS"
 #define KEY_SIG_LOS     "SIGNAL_LOS"
 
-#define DEFAULT_CYCLE_MS    1000
+#define DEFAULT_CYCLE_MS    15000
 
 /**
  * \brief Read radio configuration.
