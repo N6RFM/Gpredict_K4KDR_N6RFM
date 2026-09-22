@@ -768,6 +768,44 @@ static gboolean is_tle_file(const gchar * dir, const gchar * fnam)
  * If there is a saetllite category (.cat file) with the same name as the
  * input file it will also update the satellites in that category.
  */
+/* Decode a 5-character TLE catalog number field, handling legacy
+   zero-padded and space-padded numeric formats as well as Alpha-5
+   encoding (CelesTrak/Space-Track's scheme for catalog numbers
+   >= 100000, effective 2026-07-11): the leading digit is replaced
+   with a letter A-Z (excluding I and O) to reach up to 339999 while
+   keeping the field width at 5 characters. */
+static guint
+decode_alpha5_catnr(const char field[5])
+{
+    static const char alpha5[] = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const char *p;
+    guint suffix;
+    int i;
+
+    for (i = 1; i < 5; i++)
+    {
+        if (field[i] < '0' || field[i] > '9')
+            return 0;
+    }
+
+    suffix = (field[1] - '0') * 1000 +
+             (field[2] - '0') * 100 +
+             (field[3] - '0') * 10 +
+             (field[4] - '0');
+
+    if (field[0] == ' ')
+        return suffix;
+
+    if (field[0] >= '0' && field[0] <= '9')
+        return (field[0] - '0') * 10000 + suffix;
+
+    p = strchr(alpha5, g_ascii_toupper(field[0]));
+    if (p == NULL)
+        return 0;
+
+    return (10 + (guint)(p - alpha5)) * 10000 + suffix;
+}
+
 static gint read_fresh_tle(const gchar * dir, const gchar * fnam,
                            GHashTable * data)
 {
@@ -998,7 +1036,7 @@ static gint read_fresh_tle(const gchar * dir, const gchar * fnam,
                 catstr[i - 2] = tle_str[1][i];
             }
             catstr[5] = '\0';
-            catnr = (guint) g_ascii_strtod(catstr, NULL);
+            catnr = decode_alpha5_catnr(catstr);
 
 
             if (Get_Next_Tle_Set(tle_str, &tle) != 1)

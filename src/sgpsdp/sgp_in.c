@@ -41,6 +41,44 @@
 #include <glib/gprintf.h>
 #include "sgp4sdp4.h"
 
+/* Decode a 5-character TLE catalog number field, handling legacy
+   zero-padded and space-padded numeric formats as well as Alpha-5
+   encoding (CelesTrak/Space-Track's scheme for catalog numbers
+   >= 100000, effective 2026-07-11): the leading digit is replaced
+   with a letter A-Z (excluding I and O) to reach up to 339999 while
+   keeping the field width at 5 characters. */
+static int
+decode_alpha5_catnr(const char field[5])
+{
+    static const char alpha5[] = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+    const char *p;
+    int suffix;
+    int i;
+
+    for (i = 1; i < 5; i++)
+    {
+        if (field[i] < '0' || field[i] > '9')
+            return 0;
+    }
+
+    suffix = (field[1] - '0') * 1000 +
+             (field[2] - '0') * 100 +
+             (field[3] - '0') * 10 +
+             (field[4] - '0');
+
+    if (field[0] == ' ')
+        return suffix;
+
+    if (field[0] >= '0' && field[0] <= '9')
+        return (field[0] - '0') * 10000 + suffix;
+
+    p = strchr(alpha5, g_ascii_toupper(field[0]));
+    if (p == NULL)
+        return 0;
+
+    return (10 + (int)(p - alpha5)) * 10000 + suffix;
+}
+
 /* Calculates the checksum mod 10 of a line from a TLE set and */
 /* returns 1 if it compares with checksum in column 68, else 0.*/
 /* tle_set is a character string holding the two lines read    */
@@ -111,10 +149,14 @@ void Convert_Satellite_Data(char *tle_set, tle_t * tle)
 {
     char            buff[15];
 
-    /* Satellite's catalogue number */
-    strncpy(buff, &tle_set[2], 5);
-    buff[5] = '\0';
-    tle->catnr = atoi(buff);
+    /* Satellite's catalogue number.
+       As of 2026-07-11 CelesTrak's SATCAT crossed 100000, so newly
+       cataloged objects use Alpha-5 encoding (leading digit replaced
+       with a letter A-Z, excluding I/O) to fit numbers up to 339999
+       into the TLE format's 5-character catalog number field. Plain
+       atoi() silently decodes any Alpha-5 catalog number to 0, so use
+       an Alpha-5-aware decoder instead. */
+    tle->catnr = decode_alpha5_catnr(&tle_set[2]);
 
     /* International Designator for satellite */
     strncpy(tle->idesg, &tle_set[9], 8);
