@@ -241,3 +241,6 @@ sudo make install
   project
 - [K4KDR/gpredict](https://github.com/K4KDR/gpredict) — origin of
   the Alpha-5 catalog-number work carried forward here
+
+See [CONTRIBUTORS.md](CONTRIBUTORS.md) for details on this fork's
+specific contributions (K4KDR, N6RFM, and Claude/Anthropic).
